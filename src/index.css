@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #f1eae2;
+  --color-paper-2: #e9e0d6;
+  --color-card: #fffdfa;
+  --color-ink: #1e1a16;
+  --color-ink-2: #4a4239;
+  --color-muted: #6f665c;
+  --color-line: #e0d5c8;
+  --color-line-2: #cfc2b1;
+  --color-clay: #b0562f;
+  --color-clay-dark: #93441f;
+  --color-gold: #8a6a33;
+  --color-rose: #f6e2d9;
+  --color-good: #4b6b4f;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Mono", monospace;
+
+  --radius-card: 6px;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  /* the reference tool lets you drag-select its own UI text while placing dots */
+  .no-select, .no-select * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  :focus-visible { outline: 2px solid var(--color-clay); outline-offset: 2px; border-radius: 3px; }
+  input, button { font: inherit; color: inherit; }
+  ::selection { background: #d9c9b6; }
+}
+
+@layer components {
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--color-muted); font-weight: 500;
+  }
+  .display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+  .accent { font-family: var(--font-display); font-style: italic; color: var(--color-gold); }
+  .note { font-family: var(--font-display); font-style: italic; color: var(--color-muted); }
+
+  .card { background: var(--color-card); border: 1px solid var(--color-line); border-radius: var(--radius-card); }
+
+  .select-cl {
+    appearance: none; -webkit-appearance: none;
+    border: 1px solid var(--color-line-2); border-radius: 4px; background-color: #f6efe7;
+    color: var(--color-ink-2); font-size: 12.5px; padding: 5px 24px 5px 8px; cursor: pointer;
+    transition: border-color .14s;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--color-muted) 50%),
+      linear-gradient(135deg, var(--color-muted) 50%, transparent 50%);
+    background-position: calc(100% - 12px) 52%, calc(100% - 8px) 52%;
+    background-size: 4px 4px, 4px 4px; background-repeat: no-repeat;
+  }
+  .select-cl:hover { border-color: var(--color-clay); }
+  .select-cl:focus-visible { outline: 2px solid var(--color-clay); outline-offset: 1px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 4px; font-size: 14px; padding: 10px 16px; cursor: pointer;
+    transition: background-color .14s, border-color .14s, color .14s, transform .1s;
+  }
+  .btn:active { transform: translateY(0.5px); }
+  .btn-primary { background: var(--color-clay); color: #fff; }
+  .btn-primary:hover { background: var(--color-clay-dark); }
+  .btn-primary:disabled { background: #c9b8a8; color: #f4ece3; cursor: not-allowed; }
+  .btn-ghost { border: 1px solid var(--color-line-2); color: var(--color-ink-2); background: transparent; }
+  .btn-ghost:hover { border-color: var(--color-clay); color: var(--color-clay); }
+  .btn-quiet { color: var(--color-muted); padding: 6px 8px; }
+  .btn-quiet:hover { color: var(--color-clay); }
+
+  .row {
+    display: grid; grid-template-columns: 30px 34px 1fr auto; gap: 10px; align-items: start;
+    padding: 10px 12px; border-radius: 4px; background: #f6efe7; border: 1px solid transparent;
+    position: relative;
+    transition: border-color .14s, background-color .14s;
+  }
+  .row:hover { border-color: var(--color-line-2); }
+
+  /*
+   * The drag handle of a reorderable row: the whole left edge, top to bottom, with the
+   * number it carries centred in it. A strip only as tall as the number was a target you had
+   * to already know about, and a handle that stops short of the row reads as a decoration.
+   * It is positioned against the row rather than stretched by the grid because `align-items:
+   * start` makes stretch mean "the tallest cell's content", which is not the row.
+   */
+  .draghandle {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 42px;
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    border: 0; border-radius: 4px 0 0 4px; background: transparent; cursor: grab;
+    font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums;
+    color: var(--color-muted); transition: background-color .14s;
+  }
+  .draghandle:active { cursor: grabbing; }
+  .row:hover .draghandle { background: #eedfd2; }
+  .draghandle .grip { opacity: 0; transition: opacity .14s; }
+  .row:hover .draghandle .grip { opacity: .5; }
+  .row[data-selected="true"] { border-color: var(--color-clay); background: #f9ece4; }
+  /*
+   * Where a dragged row will land. On the edge of a row it read as something the row has —
+   * a top border, a selection — when the decision is about the space between two rows, so the
+   * mark lives in that gap.
+   *
+   * 6px, and the arithmetic is worth writing down because `top` measures from the padding box
+   * and the gap measures between borders: 4px to the middle of the list's 8px gap, 1px for the
+   * row's own border, 1px for half the line. Anything else and the line sits 3px/1px instead
+   * of 3px/3px, which is the difference between "drop it here" and a stray hairline. The list
+   * carries 6px of vertical padding so the first row's line is not clipped by the scroll edge.
+   */
+  .row[data-drop="above"]::before,
+  .row[data-drop="below"]::after {
+    content: ''; position: absolute; left: 6px; right: 6px; height: 2px;
+    background: var(--color-clay); border-radius: 2px; pointer-events: none;
+  }
+  .row[data-drop="above"]::before { top: -6px; }
+  .row[data-drop="below"]::after { bottom: -6px; }
+  .row[data-dragging="true"] { opacity: .45; }
+
+  .swatch { width: 34px; height: 34px; border-radius: 3px; border: 1px solid rgba(0,0,0,.14); }
+  .field {
+    width: 100%; background: transparent; border: 0; padding: 0; font-size: 13px; font-weight: 600;
+  }
+  .field::placeholder { color: #a2988b; font-style: italic; font-weight: 400; }
+  .field:focus { outline: none; }
+
+  .seg { display: inline-flex; background: var(--color-card); border: 1px solid var(--color-line); border-radius: 999px; padding: 3px; gap: 2px; }
+  .seg > button {
+    font-size: 13px; padding: 7px 16px; border-radius: 999px; color: var(--color-ink-2); cursor: pointer;
+    transition: background-color .14s, color .14s;
+  }
+  .seg > button:hover { color: var(--color-clay); }
+  .seg > button[aria-pressed="true"] { background: #171412; color: #fff; }
+  /*
+   * Compact variant. The inset has to come from the track's own padding: flatten it with a
+   * utility and the selected pill grows to the track's height, its curve nearly coinciding
+   * with the border so it looks like it is bulging out of the control instead of sitting
+   * inside it. Three pixels of ring on every side is what keeps the two shapes legible.
+   */
+  .seg-sm { padding: 3px; gap: 1px; }
+  .seg-sm > button { font-size: 11px; padding: 5px 11px; letter-spacing: .02em; }
+
+  .hbtn {
+    display: flex; align-items: center; gap: 8px; justify-content: flex-start; overflow: hidden;
+    border: 1px solid var(--color-line-2); border-radius: 4px; background: var(--color-card);
+    font-size: 12.5px; padding: 8px 9px; cursor: pointer; color: var(--color-ink-2); text-align: left;
+    transition: border-color .14s, background-color .14s, color .14s;
+  }
+  .hbtn:hover { border-color: var(--color-clay); color: var(--color-clay); }
+  .hbtn[aria-pressed="true"] { background: var(--color-clay); border-color: var(--color-clay); color: #fff; }
+  /* The pressed button is clay with white text. A note that insists on being muted ink
+     turns brown-on-brown there — the emotion line is the hardest thing to read on the very
+     button where it matters most, so inside a pressed button the note takes the button's
+     colour and keeps only its opacity. */
+  .hbtn[aria-pressed="true"] .note { color: inherit; }
+
+  .link { color: var(--color-clay); text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+}
+
+@utility mono-meta { font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--color-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
