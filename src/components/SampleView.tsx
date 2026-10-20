@@ -19,9 +19,11 @@ export function SampleView(props: { reanalysing: () => boolean; edited: () => st
       <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(200px,220px)]">
       <div>
       <span class="eyebrow">{t('app.step1Eyebrow')}</span>
-      <h2 class="display mt-1 max-w-[22ch] text-[34px] leading-[1.12] sm:text-[38px]">
+      {/* an `h1`, because it is the page's subject and there is no other heading above it.
+          Only one step is mounted at a time, so the page always has exactly one of these. */}
+      <h1 class="display mt-1 max-w-[22ch] text-[34px] leading-[1.12] sm:text-[38px]">
         {t('app.h1a')}<span class="accent">{t('app.h1Accent')}</span>{t('app.h1b')}
-      </h2>
+      </h1>
       <p class="mt-2 max-w-[62ch] text-[14px] leading-relaxed text-ink-2">{t('app.step1Lead')}</p>
 
       <Show when={props.reanalysing()}>

@@ -49,8 +49,6 @@ export const dict = {
   },
 
   sample: {
-    countMinimum: '{{min}} minimum',
-    countSuggested: '{{min}}–{{max}} suggested',
     title: 'Sampled colours',
     suggest: 'Suggest',
     suggestWaiting: 'Still reading the photograph — this waits a moment on a large file',
@@ -61,7 +59,6 @@ export const dict = {
     undoTitle: 'Undo the last change (⌘Z)',
     clear: 'Clear',
     clearTitle: 'Remove all points — ⌘Z brings them back',
-    hint: 'Touch and drag on the photo. The dot follows. Drag a dot to refine it.',
     sizeLabel: 'Sample area',
     sizeHint:
       'How much of the photo each point reads. A small area is precise but picks up noise '
@@ -111,7 +108,6 @@ export const dict = {
     captionPure: 'Pure hues — every dot at the rim. The angles between them reveal the harmony.',
     captionGuide: 'Each dashed ring is painted with the colour a dot should move to; arrows run from the dot to its target.',
     captionCustom: 'Drag a dot to place a target on the rim. Closest match: {{type}} ({{score}}%)',
-    closest: 'Closest match:',
     nearNeutral: ' · near-neutral',
     dotAria: 'Sample {{n}}, {{hue}}, hue {{h}} degrees',
     dotMovedAria: 'Sample {{n}}, {{hue}}, hue {{h}} degrees, target placed at {{to}} degrees',
@@ -126,12 +122,13 @@ export const dict = {
     needArms: 'Needs {{n}} distinct hues (one arm may be a move away) — this photo has {{have}}',
     degenerate: 'This needs {{n}} distinct hues; the photo offers {{have}}. The skeleton can be drawn, but there is no harmony to fit.',
     needDots: 'Needs {{n}} points so every arm ends with its own colour — you have {{have}}.',
+    // a colour that may be distance rather than a surface, said as a possibility
+    // no "may be": the numbers are the hedge, and only the user knows if that band is distance
+    aerialNote:
+      'Low chroma, bright, cool, {{share}}% of the frame. If this is distance seen through air, making it one arm of the skeleton flattens that distance. Consider ignoring it.',
     builtAround: 'Built around: {{list}}',
     feelingLabel: 'Feeling',
     /** explains the H/S/L delta read-out on every suggestion */
-    hslLegend:
-      'What to type into your editor: the big number is the relative move, the small one is '
-      + 'current → target.',
     why: 'Why this number?',
     drift: 'weighted drift',
     slots: 'slots covered',
@@ -145,11 +142,9 @@ export const dict = {
       + 'of similar viewers). This number describes structure, not beauty.',
     harmonyScoreLabel: 'Harmony',
     separationLabel: 'Separation',
-    separationHint: 'a different judgement',
+    separationHint: 'Another axis, not a second score.',
     separationNote:
-      'How far these colours pull apart: warm against cool, light against dark. Contrast is what '
-      + 'makes a subject stand out; similarity is what reads as harmony. The two move in opposite '
-      + 'directions, so pick which one you are after.',
+      'Contrast makes a subject stand out; similarity reads as harmony. They run opposite — pick one.',
     warmCoolLabel: 'Warm–cool spread',
     lightnessLabel: 'Lightness contrast',
     warmCoolValue: 'warmest {{warm}} · coolest {{cool}}',
@@ -202,7 +197,23 @@ export const dict = {
     locked: 'Locked — not moved',
     shift: 'Shift toward {{hue}}',
     bigShift: 'Big shift toward {{hue}}',
+    // a suggestion is not actionable until it says which band to drag
+    scope: 'applies to',
+    scopeTip:
+      'Editors work band by band: the {{band}} slider in Lightroom, Camera Raw and Photoshop Hue/Saturation, or the {{band}} end of a Hue vs Hue curve in DaVinci Resolve. {{light}} is where this colour sits by brightness.',
+    memory: 'This leaves the memory colour for {{what}}.',
+    memoryWhy:
+      'Preference follows memory colour: viewers hold a colour for the sky, foliage and skin, so a move away can read as wrong even when the harmony improves.',
   },
+
+  // the eight hue sliders editors expose, named the way they name them
+  hueBand: {
+    reds: 'Reds', oranges: 'Oranges', yellows: 'Yellows', greens: 'Greens',
+    aquas: 'Aquas', blues: 'Blues', purples: 'Purples', magentas: 'Magentas',
+  },
+  lightBand: { shadows: 'Shadows', midtones: 'Midtones', highlights: 'Highlights' },
+  // subjects with a memory colour, named by the thing rather than by the hue
+  memory: { sky: 'the sky', foliage: 'foliage', skin: 'skin' },
 
   app: {
     step1Eyebrow: 'Step 01 — Sampling',

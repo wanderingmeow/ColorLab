@@ -3,14 +3,14 @@ import { chromaRatio, retarget, retargetRelative, wheelRgb } from '../lib/color.
 import type { Fit, Suggestion } from '../lib/harmonies.ts';
 import { ANALOGOUS_WINDOW, NEUTRAL_FLOOR } from '../lib/harmonies.ts';
 import { harmonyLabel, hueLabel, locale, t } from '../i18n/index.ts';
-import { activeFit, activeType, customReadout, detected } from '../lib/analysis.ts';
+import { activeFit, activeType, customReadout } from '../lib/analysis.ts';
 import {
   DOT_R, GHOST_R, LABELS, LABEL_GAP, RIM,
   arcPath, connector, labelGeometry, polar,
 } from '../lib/wheel.ts';
 import type { LabelGeom, Point } from '../lib/wheel.ts';
 import {
-  clearCustomHue, customHue, dots, harmony, retargetMode, selected, setCustomHue, setSelected,
+  clearCustomHue, customHue, dots, retargetMode, selected, setCustomHue, setSelected,
   tab, sampleNumber,
 } from '../lib/store.ts';
 
@@ -542,7 +542,12 @@ export function Wheel() {
                     font-size="12" font-weight="500" fill="#fff" style={{ 'text-shadow': '0 1px 2px rgba(0,0,0,.6)' }}>
                     {sampleNumber(d().id)}
                   </text>
-                  <circle cx={q().p.x} cy={q().p.y} r={DOT_R + 4} fill="none" stroke="#b0562f" stroke-width="1.6" />
+                  {/* The selection ring sits on the dot's own white ring, not outside it:
+                      r = dot radius + half of the white stroke + half of this stroke. A ring
+                      with a gap around a dot reads as an empty circle with the disc showing
+                      through, the same mistake the dots on the photo used to make. */}
+                  <circle cx={q().p.x} cy={q().p.y} r={DOT_R + 2.5 / 2 + 1.6 / 2} fill="none"
+                    stroke="#b0562f" stroke-width="1.6" />
                 </g>
               );
             }}
@@ -563,12 +568,6 @@ export function Wheel() {
           <span class="mono-meta">{readout()}</span>
         </Show>
       </div>
-
-      <Show when={detected() && mode() === 'guide' && harmony() === 'auto'}>
-        <p class="mt-1 text-center text-[12px] text-muted">
-          {t('wheel.closest')} <span class="font-medium text-ink-2">{harmonyLabel(detected()!.type)}</span> · {detected()!.score}%
-        </p>
-      </Show>
     </div>
   );
 }

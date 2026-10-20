@@ -79,6 +79,7 @@ function SampleRow(props: {
         draggable="true"
         role="button"
         tabindex={0}
+        data-handle
         title={t('sample.reorder')}
         aria-label={t('sample.reorderAria', { n: sampleNumber(d().id) })}
         onDragStart={(e) => props.reorder.start(d().id, e)}
@@ -102,27 +103,31 @@ function SampleRow(props: {
           copied={() => copied() === d().id} onCopy={() => copy(d().hex, d().id)}
         />
       </div>
+      {/* Delete, lock, hide: the order the three decisions arrive in. Removing the point is
+          the first thing you reach for when it is wrong; the two softer states only matter once
+          the point stays. Resting at 70%: these icons are the only way to reach any of the three
+          actions, and one you have to look for is not a control. */}
       <div class="flex flex-col items-end gap-0.5 pt-0.5">
+        <button
+          class="btn btn-quiet !px-1 !py-0.5"
+          title={t('sample.del')}
+          onClick={(e) => { e.stopPropagation(); removeSample(d().id); }}
+        >
+          <IconClose size={13} class="opacity-70" />
+        </button>
         <button
           class="btn btn-quiet !px-1 !py-0.5"
           title={d().locked ? t('sample.unlock') : t('sample.lock')}
           onClick={(e) => { e.stopPropagation(); updateSample(d().id, { locked: !d().locked }); }}
         >
-          <IconLock size={13} open={!d().locked} class={d().locked ? 'text-clay' : 'opacity-45'} />
+          <IconLock size={13} open={!d().locked} class={d().locked ? 'text-clay' : 'opacity-70'} />
         </button>
         <button
           class="btn btn-quiet !px-1 !py-0.5"
           title={d().ignored ? t('sample.include') : t('sample.ignore')}
           onClick={(e) => { e.stopPropagation(); updateSample(d().id, { ignored: !d().ignored }); }}
         >
-          <IconEyeOff size={13} class={d().ignored ? 'text-clay' : 'opacity-40'} />
-        </button>
-        <button
-          class="btn btn-quiet !px-1 !py-0.5"
-          title={t('sample.del')}
-          onClick={(e) => { e.stopPropagation(); removeSample(d().id); }}
-        >
-          <IconClose size={13} class="opacity-40" />
+          <IconEyeOff size={13} class={d().ignored ? 'text-clay' : 'opacity-70'} />
         </button>
       </div>
     </div>
@@ -186,7 +191,17 @@ export function SamplePanel(props: { onAnalyze: () => void }) {
       if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
       e.preventDefault();
       const i = samples().findIndex((s) => s.id === id);
-      if (i >= 0) moveSample(id, i + (e.key === 'ArrowDown' ? 1 : -1));
+      if (i < 0) return;
+      moveSample(id, i + (e.key === 'ArrowDown' ? 1 : -1));
+      /*
+        Focus follows the sample, not the slot it was sitting in. Rows are keyed by position
+        (see the `<Index>` note below), so after one move the element under focus is the
+        neighbour that slid into the old slot, and the handler reads that neighbour's id: the
+        second Alt+↑ moved the neighbour back and the row appeared to bounce. Re-finding the
+        handle by id puts the keyboard back on the row being moved.
+      */
+      const handle = listEl?.querySelector(`[data-sample-id="${id}"]`)?.querySelector('[data-handle]');
+      if (handle instanceof HTMLElement) handle.focus();
     },
     edge: (id) => (target()?.id === id && drag() && drag() !== id ? target()!.edge : ''),
     dragging: (id) => drag() === id,
@@ -225,41 +240,43 @@ export function SamplePanel(props: { onAnalyze: () => void }) {
 
   return (
     <aside class="card p-4 flex flex-col gap-3">
-      <div class="flex items-baseline gap-2">
-        <span class="display text-[34px] leading-none">{n()}</span>
-        <span class="mono-meta">
-          {short() ? t('sample.countMinimum', { min: MIN_SAMPLES }) : t('sample.countSuggested', { min: MIN_SAMPLES, max: SUGGEST_MAX })}
-        </span>
-      </div>
-
-      <div class="border-t border-line pt-3">
-        <h3 class="display text-[17px]">{t('sample.title')}</h3>
+      {/*
+        The heading, how many points the list holds, and the three actions share one line: they
+        are one decision about this list, and a heading on its own line made the buttons look
+        like a second section. Baseline alignment keeps the 17px word and the 12px labels on one
+        line of text; flex-wrap is the fallback when the column gets narrow. The count rides
+        with the title instead of heading the card: it is a reading, not a headline, and
+        "4–8 suggested" described a button that already suggests. Below the minimum, the Analyze
+        button says so itself.
+      */}
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+        <h3 class="display text-[17px]">{t('sample.title')}
+          <span class="ml-2 text-clay tabular-nums">{n()}</span>
+        </h3>
         {/*
           Every action says what it is. Three controls in a row where one had a word, one had
           a sparkle and one had nothing at all meant pressing them was a guess — and the two
           destructive ones looked exactly alike.
         */}
-        <div class="mt-2 flex flex-wrap items-center gap-1">
+        <div class="flex flex-wrap items-center gap-1">
           {/* the suggestion engine reads pixels, so it says when it cannot yet */}
           <button
-            class="btn btn-quiet !px-2 !py-1 text-[12px]"
+            class="btn btn-quiet !px-2 !py-1 !gap-1 text-[12px]"
             onClick={suggest}
             disabled={!pixelsReady()}
             classList={{ 'opacity-45 cursor-not-allowed': !pixelsReady() }}
             title={pixelsReady() ? t('sample.suggestTitle') : t('sample.suggestWaiting')}
           >
-            <IconSparkle size={13} /> {t('sample.suggest')}
+            <IconSparkle size={13} />{t('sample.suggest')}
           </button>
-          <button class="btn btn-quiet !px-2 !py-1 text-[12px]" onClick={undo} title={t('sample.undoTitle')}>
-            <IconUndo size={13} /> {t('sample.undo')}
+          <button class="btn btn-quiet !px-2 !py-1 !gap-1 text-[12px]" onClick={undo} title={t('sample.undoTitle')}>
+            <IconUndo size={13} />{t('sample.undo')}
           </button>
-          <button class="btn btn-quiet !px-2 !py-1 text-[12px]" onClick={() => clearAll()} title={t('sample.clearTitle')}>
-            <IconTrash size={13} /> {t('sample.clear')}
+          <button class="btn btn-quiet !px-2 !py-1 !gap-1 text-[12px]" onClick={() => clearAll()} title={t('sample.clearTitle')}>
+            <IconTrash size={13} />{t('sample.clear')}
           </button>
         </div>
       </div>
-
-      <p class="text-[12.5px] text-muted -mt-1">{t('sample.hint')}</p>
 
       {/* how much of the photo each click reads */}
       <div class="flex items-center gap-2">

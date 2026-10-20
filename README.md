@@ -81,6 +81,17 @@ toward X` with the hex to move it to, `✓ Aligned` when it already stands on an
 the change is too small for the eye to see. `Move` has two settings: `Match intensity` keeps the
 relationships between your colors, and `Hue only` sends them to absolute hues.
 
+Each adjustment also carries `applies to`, naming the hue band and the lightness band the move belongs
+to. Editors work band by band, so that name is the part you can type in. Hover it for the matching
+control in Lightroom, Camera Raw, Photoshop Hue/Saturation, or a Hue vs Hue curve in DaVinci Resolve.
+
+Two more notes show up when they apply, under the same switch that flags invisible moves. One says a
+move would carry a color away from the sky, the foliage or skin the way viewers remember them:
+preference follows memory color, so a move can improve the harmony and still feel wrong. The other
+reports a low-chroma, bright, cool color and the share of the frame it covers, then asks whether that
+band is distance seen through air. Only you know that. If it is, leaving it off the skeleton keeps the
+depth in the picture.
+
 `Try another harmony` lists all nine: Split-Complementary, Double Split-Complementary, Tetradic,
 Rectangle, Analogous, Complementary, Triadic, Monochromatic and Custom. Each button shows its own
 score and mood. Color Lab disables a harmony your colors cannot fill, and its tooltip

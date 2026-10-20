@@ -118,14 +118,14 @@ export function HueMap(props: { skeleton?: boolean; compact?: boolean }) {
 
   return (
     /*
-      No paragraph under the title in either step: both cards are asked to be a picture you
-      read at a glance, and the sentence — what the cloud is, that the skeleton has to live
-      inside it — is a hover away rather than a block of text above the thing it describes.
+      No title, no paragraph: this card is asked to be a picture you read at a glance. What the
+      cloud is, and that the skeleton has to live inside it, is a hover away, and the chart keeps
+      its name as the svg's aria-label rather than as a heading. The column and the `my-auto`
+      exist so the card can be given a height (the corner of Step 2 sets one) and the picture
+      centres inside it instead of hanging from the top.
     */
-    <div class="card p-4" title={t(props.skeleton ? 'map.noteHarmony' : 'map.noteSampling')}>
-      <h3 class="display text-[15px]">{t('map.title')}</h3>
-
-      <div class="relative mx-auto mt-3 overflow-hidden rounded" style={{ 'aspect-ratio': '1', 'max-width': `${props.compact ? 210 : S}px` }}>
+    <div class="card p-4 flex flex-col" title={t(props.skeleton ? 'map.noteHarmony' : 'map.noteSampling')}>
+      <div class="relative mx-auto my-auto overflow-hidden rounded" style={{ 'aspect-ratio': '1', 'max-width': `${props.compact ? 210 : S}px` }}>
         <canvas ref={canvas} class="block h-full w-full" />
 
         <Show when={points().length === 0}>

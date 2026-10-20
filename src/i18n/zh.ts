@@ -36,8 +36,6 @@ export const dict = {
   },
 
   sample: {
-    countMinimum: '至少 {{min}} 个',
-    countSuggested: '建议 {{min}}–{{max}} 个',
     title: '已取样的颜色',
     suggest: '自动取样',
     suggestWaiting: '照片还在解码 —— 大文件会慢一点，稍等',
@@ -46,7 +44,6 @@ export const dict = {
     undoTitle: '撤销上一步（⌘Z）',
     clear: '清空',
     clearTitle: '移除所有取样点 —— ⌘Z 可以撤回',
-    hint: '在照片上按住拖动即可放点，点会跟着走；拖动已有的点可以微调。',
     sizeLabel: '取样区域',
     sizeHint:
       '每个点读取照片的范围。小范围精确，但容易带上噪点和颗粒；大范围给出一个区域的色 —— 天空、皮肤、水面 —— '
@@ -92,7 +89,6 @@ export const dict = {
     captionPure: '纯色相 —— 所有点都推到外圈，它们之间的夹角就是和谐本身。',
     captionGuide: '每个虚线环都用该点要挪到的建议色填充，箭头从点指向目标。',
     captionCustom: '拖动一个点，在环上放下一个目标。最接近的匹配：{{type}}（{{score}}%）',
-    closest: '最接近的匹配：',
     nearNeutral: ' · 近中性',
     dotAria: '第 {{n}} 号取样点，{{hue}}，色相 {{h}} 度',
     dotMovedAria: '第 {{n}} 号取样点，{{hue}}，色相 {{h}} 度，已放置目标 {{to}} 度',
@@ -107,10 +103,13 @@ export const dict = {
     needArms: '需要 {{n}} 组不同色相（最多允许一个臂靠移动补上）—— 当前只有 {{have}} 组',
     degenerate: '它需要 {{n}} 组不同色相，而这张照片只有 {{have}} 组 —— 骨架画得出来，但谈不上和声。',
     needDots: '需要 {{n}} 个取样点，才能让每条臂最后都站着一个颜色 —— 当前只有 {{have}} 个',
+    // 可能是距离，而不是某个表面的颜色：只说可能
+    // 不写"可能"：数字就是保留，而那一条到底是不是远景，只有用户知道
+    aerialNote:
+      '低彩度、偏亮、偏冷，占画面 {{share}}%。若这是隔着空气看到的远景，把它当成一条臂会压平距离 —— 可以考虑忽略它。',
     builtAround: '围绕：{{list}}',
     feelingLabel: '情绪',
     /** 解释每条建议里的 H/S/L 增量 */
-    hslLegend: '编辑器里要填的数：大字是相对增量，小字是「当前值 → 目标值」。',
     why: '这个分数怎么来的？',
     drift: '加权漂移',
     slots: '槽位覆盖率',
@@ -124,10 +123,9 @@ export const dict = {
       + '这个数字描述的是结构，不是美不美。',
     harmonyScoreLabel: '和谐',
     separationLabel: '突出程度',
-    separationHint: '另一种判断',
+    separationHint: '另一个维度，不是第二个分数。',
     separationNote:
-      '这些颜色彼此拉开多远：冷暖相对、明暗相对。对比让主体从背景里跳出来，'
-      + '相似才读作和谐 —— 两者方向相反，先想清楚你要哪一个。',
+      '对比让主体跳出来，相似读作和谐。两者方向相反，选一个。',
     warmCoolLabel: '冷暖跨度',
     lightnessLabel: '明度对比',
     warmCoolValue: '最暖 {{warm}} · 最冷 {{cool}}',
@@ -175,7 +173,22 @@ export const dict = {
     locked: '已锁定 —— 不动它',
     shift: '往 {{hue}} 微调',
     bigShift: '往 {{hue}} 大幅挪动',
+    // 建议要说到「去拉哪个滑块」才可执行
+    scope: '作用范围',
+    scopeTip:
+      '编辑器都是按色带操作的：Lightroom、Camera Raw、Photoshop 色相/饱和度里的「{{band}}」滑块，或 DaVinci Resolve 里 Hue vs Hue 曲线的「{{band}}」端。{{light}}指这个颜色在明度上的位置。',
+    memory: '这会离开「{{what}}」的记忆色。',
+    memoryWhy: '观众对天空、树叶、肤色有一个记忆色，喜好会跟着它走。挪开之后，即使和声变好，也可能被觉得不对。',
   },
+
+  // 编辑器都有的八个色相滑块，按它们自己的叫法
+  hueBand: {
+    reds: '红', oranges: '橙', yellows: '黄', greens: '绿',
+    aquas: '青', blues: '蓝', purples: '紫', magentas: '品红',
+  },
+  lightBand: { shadows: '阴影', midtones: '中间调', highlights: '高光' },
+  // 有记忆色的东西：按东西命名，不按色相命名
+  memory: { sky: '天空', foliage: '树叶', skin: '肤色' },
 
   app: {
     step1Eyebrow: '第 01 步 —— 取样',

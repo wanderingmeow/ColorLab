@@ -13,10 +13,11 @@ import assert from 'node:assert/strict';
 import { buttonWithText, clearDom, click, flush, mount, textOf } from './dom-env.ts';
 import { pickLocale } from '../src/i18n/index.ts';
 import {
-  addSample, clearAll, samples, selected, setPhoto, setPixelsSrc, setSamples, setSelected, updateSample,
+  addSample, clearAll, prominence, samples, selected, setPhoto, setPixelsSrc, setProminence,
+  setSamples, setHarmony, setSelected, updateSample,
 } from '../src/lib/store.ts';
 import { SamplePanel } from '../src/components/SamplePanel.tsx';
-import { HarmonyPanel } from '../src/components/HarmonyPanel.tsx';
+import { HarmonyView } from '../src/components/HarmonyView.tsx';
 import { HueMap } from '../src/components/HueMap.tsx';
 import { sampler } from '../src/lib/image.ts';
 import { flat } from './frame.ts';
@@ -114,7 +115,7 @@ test('a harmony the samples cannot carry is disabled, with the reason on it', as
   // one hue, four times: the maths loves a four-arm skeleton over identical colours
   seed(4);
   setSamples(samples().map((s, i) => ({ ...s, hex: '#D28C46', id: s.id, x: 0.3 + i * 0.1, y: 0.5 })));
-  const host = await mount(() => HarmonyPanel());
+  const host = await mount(() => HarmonyView());
   const tetradic = [...host.querySelectorAll('button')].find((b) => textOf(b).includes('Tetradic'));
   assert.ok(tetradic, 'the scheme is still offered, so the user can see it was considered');
   assert.equal(tetradic.getAttribute('aria-pressed'), 'false');
@@ -127,7 +128,7 @@ test('the panel shows separation next to harmony and never adds them up', async 
   seed(4);
   setSamples(samples().map((s, i) => ({ ...s, id: s.id,
     hex: ['#0FB3B3', '#FF7A29', '#2F2F2F', '#F2F2F2'][i], x: 0.3 + i * 0.1, y: 0.5 })));
-  const host = await mount(() => HarmonyPanel());
+  const host = await mount(() => HarmonyView());
   const text = textOf(host);
   assert.match(text, /Harmony/, 'the structure reading is labelled as itself');
   assert.match(text, /Separation/, 'and so is the other axis');
@@ -219,7 +220,9 @@ test('the hue map numbers its dots like the list, and clicking one selects it', 
   click(marks()[2]);
   await flush();
   assert.equal(selected(), samples()[2].id, 'a dot on the map selects the sample everywhere');
-  assert.match(textOf(host), /Hue map/, 'and the card says what it is');
+  // the visible heading is gone by design; the chart still has to say what it is to a reader
+  assert.match(host.querySelector('svg')?.getAttribute('aria-label') ?? '', /Hue map/,
+    'the name moved from a heading to the accessible label, it did not disappear');
 });
 
 test('a photo that arrives — or is pasted over the last one — repaints the hue map', async () => {
@@ -241,4 +244,71 @@ test('a photo that arrives — or is pasted over the last one — repaints the h
   setPhoto({ src: 'frame-b', name: 'b', w: 21, h: 21 });
   await flush();
   assert.match(textOf(host), /no hue to plot|几乎/i, 'a new photo is not the old one');
+});
+
+test('a suggestion names the band to drag, and says when it leaves a memory colour', async () => {
+  clearDom();
+  pickLocale('en');
+  setSamples([]);
+  // three warm colours and one sky blue: an analogous window holds the warm ones and pushes
+  // the blue out of the sky, which is exactly the move a viewer will feel
+  addSample('#2F63C8', 0.3, 0.3);
+  addSample('#D28C46', 0.45, 0.5);
+  addSample('#C9A227', 0.6, 0.35);
+  addSample('#B7C63C', 0.7, 0.6);
+  setHarmony('analogous');
+  const host = await mount(() => HarmonyView());
+
+  const scopes = [...host.querySelectorAll('[title]')].filter((e) => textOf(e).startsWith('applies to'));
+  assert.ok(scopes.length >= 1, 'a move has to say which control in an editor it belongs to');
+  const tip = scopes[0].getAttribute('title') ?? '';
+  assert.match(tip, /Reds|Oranges|Yellows|Greens|Aquas|Blues|Purples|Magentas/, 'the slider it means');
+  assert.match(tip, /Shadows|Midtones|Highlights/, 'and where the colour sits by brightness');
+  assert.match(textOf(host), /memory colour/,
+    'and the sky blue being dragged off the sky is flagged, because the maths cannot know the sky');
+});
+
+test('a colour that may be distance is offered as distance, not as a colour to fix', async () => {
+  clearDom();
+  pickLocale('en');
+  setSamples([]);
+  const haze = addSample('#9FB6C9', 0.5, 0.25);
+  addSample('#D28C46', 0.4, 0.6);
+  addSample('#2F63C8', 0.62, 0.62);
+  addSample('#B7C63C', 0.72, 0.42);
+  setProminence({ [haze]: 0.45 });
+  const host = await mount(() => HarmonyView());
+  const text = textOf(host);
+  assert.match(text, /45% of the frame/, 'the note states what it measured, and the share is the hedge');
+  assert.match(text, /If this is distance seen through air/, 'and leaves the call to the person who took the photo');
+  assert.match(text, /Consider ignoring it/, 'and offers a choice rather than a correction');
+
+  // the same colour in a small share of the frame is a colour like any other
+  setProminence({ [haze]: 0.04 });
+  assert.doesNotMatch(textOf(host), /aerial perspective/,
+    'area is part of the claim, so it has to be part of the trigger');
+  assert.ok(prominence()[haze] === 0.04);
+});
+
+test('Alt+↑ keeps moving the row you started on, not the neighbour that slid into its slot', async () => {
+  clearDom();
+  pickLocale('en');
+  seed(4);
+  const host = await mount(() => SamplePanel({ onAnalyze: () => {} }));
+  const order = () => samples().map((s) => s.id);
+  const ids = order();
+  const handle = (id: string) => host.querySelector(`[data-sample-id="${id}"] [data-handle]`) as HTMLElement;
+  // a real keyboard presses whatever has focus, which is a slot, not a sample
+  const pressUp = () => (document.activeElement as HTMLElement).dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowUp', altKey: true, bubbles: true, cancelable: true }));
+
+  handle(ids[3]).focus();
+  pressUp();
+  await flush();
+  assert.deepEqual(order(), [ids[0], ids[1], ids[3], ids[2]], 'one step up');
+
+  pressUp();
+  await flush();
+  assert.deepEqual(order(), [ids[0], ids[3], ids[1], ids[2]],
+    'the second press moves the same row again: focus has to follow the sample, or the row looks like it bounced');
 });

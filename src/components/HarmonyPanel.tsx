@@ -7,9 +7,10 @@ import type { HarmonyType, RetargetMode, Suggestion } from '../lib/harmonies.ts'
 /** what `dots()` hands back: a sample plus its HSL and plotting hue */
 type Dot = ReturnType<typeof dots>[number];
 import { activeFit, activeType, isAuto, ranked } from '../lib/analysis.ts';
+import { aerialHazard, hueBand, lightBand, memoryLeft } from '../lib/cues.ts';
 import { measureSeparation } from '../lib/separation.ts';
 import {
-  dots, retargetMode, selected, setCustomHue, setHarmony, setRetargetMode, setShowHints,
+  dots, prominence, retargetMode, selected, setCustomHue, setHarmony, setRetargetMode, setShowHints,
   setSelected, sampleNumber, showHints, updateSample,
 } from '../lib/store.ts';
 import { useCopy } from '../lib/ui.ts';
@@ -39,6 +40,16 @@ function SuggestionRow(props: { s: Suggestion; d: Dot }) {
   const { copied, copy } = useCopy();
         const neutral = chromaRatio(d.hex) < NEUTRAL_FLOOR;
         const hueWord = () => hueLabel(s.targetHue ?? 0);
+        /*
+          Three things the harmony maths cannot ask, because it only sees numbers per sample:
+          which slider this move belongs to in an editor, whether the colour is one a viewer
+          remembers, and whether the colour is a surface at all. See lib/cues.ts for what each
+          one is claiming and what it is not.
+        */
+        const area = () => prominence()[d.id] ?? 0;
+        const aerial = () => aerialHazard(d.hex, area());
+        const memory = () => (s.kind === 'shift' ? memoryLeft(d.hsl.h, s.targetHue ?? d.hsl.h) : null);
+        const scope = () => ({ band: t(`hueBand.${hueBand(d.hsl.h)}`), light: t(`lightBand.${lightBand(d.hex)}`) });
         return (
           <div class="row" data-selected={selected() === d.id} classList={{ 'opacity-55': d.ignored }}
             onClick={() => setSelected(d.id)}>
@@ -107,11 +118,34 @@ function SuggestionRow(props: { s: Suggestion; d: Dot }) {
                     <IconCopy size={11} class={copied() === `t${s.id}` ? 'text-clay' : 'opacity-45'} />
                   </button>
                 </div>
+                {/* A suggestion says how far to turn a colour, not where to turn it. The
+                    editor's own unit is a band, so name the band and the brightness range. A
+                    near-neutral colour has no hue worth naming, so no band is claimed for it. */}
+                <Show when={chromaRatio(d.hex) >= NEUTRAL_FLOOR}>
+                  <div class="mt-0.5 mono-meta" title={t('adj.scopeTip', scope())}>
+                    {t('adj.scope')} · {scope().band} · {scope().light}
+                  </div>
+                </Show>
                 <Show when={showHints() && neutral}>
                   <p class="mt-1 rounded bg-[#f3ead9] px-2 py-1 text-[11.5px] leading-snug text-[#7a5a25]">
                     {t('harmony.neutralHint', { s: Math.round(d.hsl.s), hue: hueWord() })}
                   </p>
                 </Show>
+                {/* The sky is allowed to be off-skeleton because the sky has a colour people
+                    are holding, not because the maths missed. */}
+                <Show when={showHints() && memory()}>
+                  <p class="mt-1 rounded bg-[#f3ead9] px-2 py-1 text-[11.5px] leading-snug text-[#7a5a25]"
+                    title={t('adj.memoryWhy')}>
+                    {t('adj.memory', { what: t(`memory.${memory()}`) })}
+                  </p>
+                </Show>
+              </Show>
+              {/* The one colour that may not be a thing: distance seen through air. Cooled tint
+                  on purpose, so it does not look like another correction being requested. */}
+              <Show when={showHints() && aerial()}>
+                <p class="mt-1 rounded bg-[#e9eef4] px-2 py-1 text-[11.5px] leading-snug text-[#3f5b76]">
+                  {t('harmony.aerialNote', { share: Math.round(area() * 100) })}
+                </p>
               </Show>
             </div>
             <button
@@ -237,29 +271,16 @@ function HarmonyPicker() {
         {t('harmony.flagInvisible')}
       </label>
     </div>
-
-    {/* which sliders the suggestion is allowed to touch */}
-    <div class="mt-2 flex flex-wrap items-center gap-2">
-      <span class="eyebrow">{t('harmony.moveLabel')}</span>
-      <div class="seg seg-sm" role="group" aria-label={t('harmony.moveLabel')}>
-        <For each={MODES}>
-          {(m) => (
-            <button aria-pressed={retargetMode() === m} onClick={() => setRetargetMode(m)}
-              title={t(m === 'relative' ? 'harmony.moveRelativeNote' : 'harmony.moveHueNote')}>
-              {t(m === 'relative' ? 'harmony.moveRelative' : 'harmony.moveHue')}
-            </button>
-          )}
-        </For>
-      </div>
-    </div>
-    <p class="note mt-1 text-[11px] leading-snug">
-      {t(retargetMode() === 'relative' ? 'harmony.moveRelativeNote' : 'harmony.moveHueNote')}
-    </p>
   </div>
   );
 }
 
-export function HarmonyPanel() {
+/**
+ * The left column: which harmony the app settled on, what it costs, what it feels like, and
+ * the controls that change the answer. The list of moves lives apart in `HarmonyAdjustments`.
+ * One column is the reading, the other is the workbench, and the wheel sits between them.
+ */
+export function HarmonyReading() {
   const fit = activeFit;
 
   return (
@@ -307,11 +328,9 @@ export function HarmonyPanel() {
               */}
               <Show when={sep()}>
                 {(s) => (
-                  <div class="mt-2 rounded border border-[#e4d9cb] px-2 py-1.5">
-                    <div class="flex items-baseline justify-between">
-                      <span class="eyebrow">{t('harmony.separationLabel')}</span>
-                      <span class="note text-[10.5px]">{t('harmony.separationHint')}</span>
-                    </div>
+                  <div class="mt-2 rounded border border-[#e4d9cb] px-2 py-1.5"
+                    title={t('harmony.separationHint')}>
+                    <span class="eyebrow">{t('harmony.separationLabel')}</span>
                     <For
                       each={[
                         { key: 'warm', v: s().warmCool, label: t('harmony.warmCoolLabel'),
@@ -357,11 +376,51 @@ export function HarmonyPanel() {
         </Show>
       </div>
 
-      {/* 2 — what to move */}
+      <HarmonyPicker />
+    </aside>
+  );
+}
+
+/**
+ * The right column: what to type into the editor, one row per colour. It is kept apart from
+ * the reading because the two are read at different moments — the verdict when you are deciding
+ * whether the scheme is right, this when you are already doing it.
+ */
+export function HarmonyAdjustments() {
+  const fit = activeFit;
+
+  return (
+    <aside class="card p-4 flex flex-col gap-3">
       <div>
         <span class="eyebrow">{t('harmony.adjustments')}</span>
-        <p class="mt-1 text-[11px] leading-snug text-muted">{t('harmony.hslLegend')}</p>
-        <div class="mt-2 flex flex-col gap-2 overflow-y-auto pr-1" style={{ 'max-height': '40vh' }}>
+        {/*
+          Which sliders a suggestion may touch, sitting with the numbers it changes: in the
+          picker column it read as a setting about the harmony, and it is not — it is about how
+          the next row's HSL boxes are computed.
+        */}
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span class="eyebrow">{t('harmony.moveLabel')}</span>
+          <div class="seg seg-sm" role="group" aria-label={t('harmony.moveLabel')}>
+            <For each={MODES}>
+              {(m) => (
+                <button aria-pressed={retargetMode() === m} onClick={() => setRetargetMode(m)}
+                  title={t(m === 'relative' ? 'harmony.moveRelativeNote' : 'harmony.moveHueNote')}>
+                  {t(m === 'relative' ? 'harmony.moveRelative' : 'harmony.moveHue')}
+                </button>
+              )}
+            </For>
+          </div>
+        </div>
+        <p class="note mt-1 text-[11px] leading-snug">
+          {t(retargetMode() === 'relative' ? 'harmony.moveRelativeNote' : 'harmony.moveHueNote')}
+        </p>
+        {/*
+          The list used to stop at 40vh, which was the right height when the verdict sat above it
+          in the same column and an inner scroll kept that verdict in view. The verdict lives in
+          another column now, so a short list only hides work: eight points, seven rows of
+          scrolling. It still caps, so a long list cannot push the wheel off the page.
+        */}
+        <div class="mt-2 flex flex-col gap-2 overflow-y-auto pr-1" style={{ 'max-height': 'calc(100vh - 220px)' }}>
           <For each={fit()?.suggestions ?? []}>
             {(s) => {
               const d = dots().find((x) => x.id === s.id);
@@ -370,8 +429,6 @@ export function HarmonyPanel() {
           </For>
         </div>
       </div>
-
-      <HarmonyPicker />
     </aside>
   );
 }
